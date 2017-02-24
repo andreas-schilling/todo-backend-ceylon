@@ -34,11 +34,12 @@ import ceylon.json {
     JsonArray
 }
 
-import org.kiirun.todo.domain {
-    TodoData
-}
 import java.net {
     URI
+}
+
+import org.kiirun.todo.domain {
+    TodoData
 }
 
 shared Method patch = parseMethod("PATCH");
@@ -49,6 +50,8 @@ shared class TodoResource() {
     }
     
     Todos todos = Todos();
+    
+    String? externalUrl = process.environmentVariableValue("EXTERNAL_URL");
     
     shared void start() {
         Server server = newServer {
@@ -92,13 +95,15 @@ shared class TodoResource() {
         return Endpoint {
             path = isRoot().or(startsWith("/todo"));
             acceptMethod = { options };
-            void service(Request request, Response response) {
-                defaultResponse(response, 200);
-                response.addHeader(contentType("text/html", charsetsByAlias["UTF-8"]));
-                response.addHeader(Header("Access-Control-Allow-Headers", "Content-Type"));
-                response.addHeader(Header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS"));
-            }
+            optionsService;
         };
+    }
+    
+    void optionsService(Request request, Response response) {
+        defaultResponse(response, 200);
+        response.addHeader(contentType("text/html", charsetsByAlias["UTF-8"]));
+        response.addHeader(Header("Access-Control-Allow-Headers", "Content-Type"));
+        response.addHeader(Header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS"));
     }
     
     Endpoint getAllTodos() {
@@ -110,7 +115,7 @@ shared class TodoResource() {
             }
         };
     }
-        
+    
     Endpoint getUpdateDeleteOneTodo() {
         return Endpoint {
             path = template("/todo/{id}");
@@ -141,6 +146,8 @@ shared class TodoResource() {
             } else {
                 defaultResponse(response, 422);
             }
+        } else if (request.method == options) {
+            optionsService(request, response);
         } else {
             defaultResponse(response, 405);
         }
@@ -153,7 +160,7 @@ shared class TodoResource() {
             void service(Request request, Response response) {
                 try {
                     assert (is TodoData todoData = TodoData.fromJson(request.read()));
-                    URI baseUrl = URI(request.scheme, request.destinationAddress.address, request.path, null);
+                    URI baseUrl = URI(request.scheme, externalUrl else request.destinationAddress.address, request.path, null);
                     jsonResponse(response, 201, todos.add(baseUrl, todoData).toJson().pretty);
                 } catch (AssertionError e) {
                     defaultResponse(response, 422);
