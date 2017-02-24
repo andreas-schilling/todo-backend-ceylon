@@ -20,7 +20,7 @@ ceylon {
 
 heroku {
 	appName = "todo-backend-ceylon"
-	includes = ["build/libs/org.kiirun.todo-1.0.0.jar"]
+	includes = ["${project.projectDir}/build/libs/org.kiirun.todo-1.0.0.jar"]
 	includeBuildDir = false
 	processTypes(
 		web: "java -jar build/libs/org.kiirun.todo-1.0.0.jar"
